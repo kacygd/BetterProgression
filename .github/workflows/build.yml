@@ -35,20 +35,37 @@ jobs:
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
-          combine: true
+          combine: false
           sdk: nightly
           target: ${{ matrix.config.target }}
       
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.config.name }}-build
+          path: build
+
   package:
     name: Package builds
     runs-on: ubuntu-latest
-    needs: ['build']
+    needs: build
 
     steps:
-      - uses: geode-sdk/build-geode-mod@combine
-        id: build
+      - uses: actions/checkout@v3
 
-      - uses: actions/upload-artifact@v3
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Combine builds
+        uses: geode-sdk/build-geode-mod@combine
+        with:
+          cli: latest
+          delete-artifacts: true
+
+      - name: Upload combined build artifact
+        uses: actions/upload-artifact@v3
         with:
           name: Build Output
-          path: ${{ steps.build.outputs.build-output }}
+          path: ${{ steps.combine.outputs.build-output }}
