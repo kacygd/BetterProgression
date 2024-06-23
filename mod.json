@@ -6,8 +6,8 @@
     "mac": "2.206"
   },
   "version": "v1.2.1",
-  "id": "itzkiba.better_progression",
-  "name": "Better Progression",
+  "id": "cps.better_progression",
+  "name": "CPS Better Progression",
   "developer": "ItzKiba",
   "description": "Adds a leveling / EXP system to Geometry Dash with upgradable badges!",
   "dependencies": [
