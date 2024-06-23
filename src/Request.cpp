@@ -78,7 +78,7 @@ void Request::performCPRequest() {
 
     auto req = web::WebRequest();
     req.bodyString(fmt::format("targetAccountID={}&secret={}", accountID, "Wmfd2893gb7"));
-    m_listener.setFilter(req.post("http://www.boomlings.com/database/getGJUserInfo20.php"));
+    m_listener.setFilter(req.post("https://cps.ps.fhgdps.com/database/getGJUserInfo20.php"));
 
     /*
     web::AsyncWebRequest()
