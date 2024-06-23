@@ -43,7 +43,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.config.name }}-build
-          path: build
+          path: build # Giả định rằng đầu ra build nằm trong thư mục 'build'
 
   package:
     name: Package builds
@@ -58,14 +58,59 @@ jobs:
         with:
           path: artifacts
 
-      - name: Combine builds
-        uses: geode-sdk/build-geode-mod@combine
+      - name: Download CLI
+        uses: robinraju/release-downloader@v1.10
         with:
-          cli: latest
-          delete-artifacts: true
+          repository: geode-sdk/cli
+          latest: true
+          tarBall: false
+          zipBall: false
+          fileName: "*-linux.zip"
+          extract: true
+          out-file-path: ${{ github.action_path }}
+
+      - run: echo "${{ github.action_path }}" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Combine builds
+        shell: bash
+        id: merge
+        run: |
+          cd "${{ github.action_path }}"
+          chmod +x ./geode
+          mkdir out
+          MODS=$(find . -name *.geode -type f -printf "%f\n" | sort -u)
+          for mod in $MODS; do
+            echo "Merging $mod"
+            PACKAGE_ARGS=""
+            if [ -f "./artifacts/geode-build-win/$mod" ]; then
+              PACKAGE_ARGS="$PACKAGE_ARGS ./artifacts/geode-build-win/$mod"
+            fi
+            if [ -f "./artifacts/geode-build-mac/$mod" ]; then
+              PACKAGE_ARGS="$PACKAGE_ARGS ./artifacts/geode-build-mac/$mod"
+            fi
+            if [ -f "./artifacts/geode-build-android32/$mod" ]; then
+              PACKAGE_ARGS="$PACKAGE_ARGS ./artifacts/geode-build-android32/$mod"
+            fi
+            if [ -f "./artifacts/geode-build-android64/$mod" ]; then
+              PACKAGE_ARGS="$PACKAGE_ARGS ./artifacts/geode-build-android64/$mod"
+            fi
+            ARG_LIST=($PACKAGE_ARGS)
+            # why does it merge into the first one instead of just an output..
+            FIRST="${ARG_LIST[0]}"
+            if [ ${#ARG_LIST[@]} != 1 ]; then
+              geode package merge $PACKAGE_ARGS
+            fi
+            cp $FIRST out
+          done
+          # Copy the .pdb file from windows artifact if it exists
+          if [ -f "./artifacts/geode-build-win/$(basename $FIRST .geode).pdb" ]; then
+            cp "./artifacts/geode-build-win/$(basename $FIRST .geode).pdb" out
+          fi
+          echo "output=$(realpath out)" >> $GITHUB_OUTPUT
 
       - name: Upload combined build artifact
         uses: actions/upload-artifact@v3
         with:
           name: Build Output
-          path: ${{ steps.combine.outputs.build-output }}
+          path: ${{ steps.merge.outputs.output }}
